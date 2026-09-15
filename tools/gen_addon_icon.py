@@ -1,8 +1,9 @@
 import os
 import shutil
+
 import click
 
-from .manifest import read_manifest, NoManifestFound
+from .manifest import iter_addon_dirs
 
 ICONS_DIR = os.path.join('static', 'description')
 
@@ -10,16 +11,19 @@ ICONS_DIR = os.path.join('static', 'description')
 @click.command()
 @click.option("--addons-dir", default=".")
 @click.option("--icon-file", default=None)
-def main(addons_dir, icon_file):
+@click.option(
+    "--exclude",
+    multiple=True,
+    metavar="PATTERN",
+    help="Addon name or glob to leave untouched (repeatable). "
+    "Use it for vendored third-party addons.",
+)
+def main(addons_dir, icon_file, exclude):
     """ Put default ProcessControl icon.
     Do nothing if the icon already exists in ICONS_DIR, otherwise put the default icon.
     """
     icon_file = icon_file or os.path.join(os.path.dirname(__file__), 'icon.png')
-    for addon_dir in os.listdir(addons_dir):
-        try:
-            read_manifest(addon_dir)
-        except NoManifestFound:
-            continue
+    for _addon_name, addon_dir in iter_addon_dirs(addons_dir, exclude):
         icon_dir = os.path.join(addon_dir, ICONS_DIR)
         if os.path.exists(os.path.join(icon_dir, 'icon.png')):
             continue
